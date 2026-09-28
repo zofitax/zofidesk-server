@@ -2,5 +2,7 @@
 target
 .git
 **/*.sqlite3*
+# sqlx::query! in src/database.rs checks its queries against this file at compile time.
+!db_v2.sqlite3
 id_ed25519*
 data
