@@ -1,0 +1,2 @@
+# These files run or are read on Linux: keep LF even in Windows checkouts.
+* text eol=lf

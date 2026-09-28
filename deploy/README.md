@@ -29,6 +29,26 @@ Si el paquete es privado, en el VPS hace falta `docker login ghcr.io` con un tok
 
 ## Primera instalación (migración desde rustdesk-server)
 
+### Con los scripts (recomendado)
+
+1. Copiar `docker-compose.yml`, `Caddyfile`, `.env.example`, `vps-check.sh` y `migrate.sh` a
+   `/opt/zofidesk`, y crear `.env` a partir de `.env.example` (versión fija de la imagen,
+   `MUST_LOGIN=N`).
+2. `sudo ./vps-check.sh` solo lee. Muestra los contenedores de RustDesk, su carpeta de datos, si la
+   clave coincide con la de los clientes, qué ocupa los puertos 80/443 y el firewall.
+3. Abrir 80 y 443/tcp en el firewall si no lo están.
+4. `sudo ./migrate.sh <carpeta de datos antigua> hbbs hbbr`. Se detiene si algo no cuadra:
+   - la clave no es la de los clientes;
+   - `./data` ya tiene datos;
+   - 80/443 están ocupados.
+
+   Después para los contenedores antiguos, sin borrarlos, hace una copia de seguridad, copia la
+   clave y `db_v2.sqlite3`, arranca ZofiDesk y comprueba la clave, el relay, la API y el HTTPS.
+5. Si algo va mal: `sudo ./migrate.sh --rollback hbbs hbbr`.
+6. Crear el primer usuario (paso 5 de abajo).
+
+### A mano
+
 1. **Copia de seguridad** de la carpeta de datos actual (`./data` del compose anterior). Tiene
    que contener `id_ed25519` e `id_ed25519.pub`: es la clave que ya tienen los clientes instalados.
 2. En el VPS, crear p. ej. `/opt/zofidesk` con `docker-compose.yml`, `Caddyfile` y

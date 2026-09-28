@@ -38,7 +38,7 @@ docker rm -f zofidesk-test 2>/dev/null
 docker run -d --name zofidesk-test --network host \
   --env-file /opt/zofidesk-test/test.env \
   -v /opt/zofidesk-test/data:/data \
-  ghcr.io/zofitax/zofidesk-server:0.1.0-rc2
+  ghcr.io/zofitax/zofidesk-server:0.1.0-rc3
 EOF
 chmod +x /opt/zofidesk-test/run.sh
 /opt/zofidesk-test/run.sh
