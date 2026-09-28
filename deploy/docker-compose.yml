@@ -1,0 +1,29 @@
+# ZofiDesk server: hbbs (rendezvous + API + embedded relay) and Caddy for HTTPS.
+# Both use the host network so hbbs sees the clients' real addresses (needed for hole punching).
+
+services:
+  zofidesk:
+    image: ${ZOFIDESK_IMAGE:-ghcr.io/zofitax/zofidesk-server:latest}
+    container_name: zofidesk
+    network_mode: host
+    environment:
+      RELAY_SERVERS: ${RELAY_SERVERS:?set RELAY_SERVERS in .env}
+      MUST_LOGIN: ${MUST_LOGIN:-N}
+      EMBEDDED_RELAY: "Y"
+      # Only Caddy (on this host) reaches the API; clients use https://${ZOFIDESK_DOMAIN}.
+      API_BIND: 127.0.0.1
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    container_name: zofidesk-caddy
+    network_mode: host
+    environment:
+      ZOFIDESK_DOMAIN: ${ZOFIDESK_DOMAIN:?set ZOFIDESK_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    restart: unless-stopped

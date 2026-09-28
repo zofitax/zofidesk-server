@@ -1,0 +1,71 @@
+name: zofi-docker
+
+# Tests the ZofiDesk server and publishes its image to ghcr.io/zofitax/zofidesk-server.
+# Runs on "zofi-v*" tags (zofi-v1.0.0, or zofi-v1.0.0-rc1 to test a branch) or by hand from
+# the Actions tab (only once this file is on the default branch).
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'zofi-v*'
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+  IMAGE: ghcr.io/zofitax/zofidesk-server
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --locked zofi
+
+  image:
+    needs: test
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Only final releases (zofi-v1.2.3) move "latest"; test tags (zofi-v1.2.3-rc1) do not.
+      - id: release
+        run: |
+          if [[ "$GITHUB_REF" =~ ^refs/tags/zofi-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "final=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "final=false" >> "$GITHUB_OUTPUT"
+          fi
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=match,pattern=zofi-v(.*),group=1
+            type=sha
+            type=raw,value=latest,enable=${{ steps.release.outputs.final }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

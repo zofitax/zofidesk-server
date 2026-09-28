@@ -52,12 +52,20 @@ fn is_yes(name: &str) -> bool {
     get_arg_or(name, String::new()).to_uppercase() == "Y"
 }
 
+/// `API_BIND` (e.g. 127.0.0.1 behind a reverse proxy) overrides the hbbs bind address for the API.
 fn spawn_api(bind_addr: Option<IpAddr>, port: u16, db: store::Db) {
     if port == 0 {
         log::info!("ZofiDesk API disabled");
         return;
     }
-    let addr = SocketAddr::new(bind_addr.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)), port);
+    let api_bind = match crate::common::parse_bind_address(&get_arg_or("API_BIND", String::new())) {
+        Ok(api_bind) => api_bind.or(bind_addr),
+        Err(err) => {
+            log::error!("ZofiDesk API disabled: {err}");
+            return;
+        }
+    };
+    let addr = SocketAddr::new(api_bind.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)), port);
     tokio::spawn(async move {
         if let Err(err) = api::serve(addr, db).await {
             log::error!("ZofiDesk API stopped: {err}");

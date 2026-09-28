@@ -1,0 +1,6 @@
+# Used by BuildKit for builds with -f deploy/Dockerfile (context: repository root).
+target
+.git
+**/*.sqlite3*
+id_ed25519*
+data

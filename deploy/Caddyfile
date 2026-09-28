@@ -1,0 +1,5 @@
+{$ZOFIDESK_DOMAIN} {
+	encode gzip
+	reverse_proxy /api/* 127.0.0.1:21114
+	respond 404
+}
