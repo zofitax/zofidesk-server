@@ -115,6 +115,7 @@ impl RendezvousServer {
         let nat_port = port - 1;
         let ws_port = port + 2;
         let pm = PeerMap::new().await?;
+        crate::zofi::spawn_api(bind_addr, port);
         log::info!("serial={}", serial);
         let rendezvous_servers = get_servers(&get_arg("rendezvous-servers"), "rendezvous-servers");
         let mut socket = create_udp_listener(bind_addr, port, rmem).await?;
