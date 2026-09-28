@@ -7,6 +7,11 @@ que con `MUST_LOGIN=N` todo sigue funcionando como hoy.
 - **Equipo A (técnico):** es el que controla e inicia sesión.
 - **Equipo B (controlado):** hace de PC de cliente y nunca inicia sesión.
 
+> **A y B tienen que estar en redes distintas**, por ejemplo B conectado a la red compartida del
+> móvil. Si salen a internet por la misma IP pública, el servidor les dice que se conecten por la
+> red local y nunca usan el relay, ni siquiera con `ALWAYS_USE_RELAY=Y`. En ese caso las fases 3 y
+> 4 no probarían nada. Las fases 1 y 2 sí funcionan en la misma red.
+
 La prueba usa una **instancia aparte en el VPS, en los puertos 3111x**. El servidor de producción
 (2111x) no se toca, y los clientes instalados no se enteran.
 
@@ -100,6 +105,8 @@ Para cambiar de fase: edita `test.env`, ejecuta `run.sh` y comprueba en `docker 
 
 ### Fase 3: `MUST_LOGIN=Y`, `ALWAYS_USE_RELAY=Y` (todo por relay)
 
+Antes de empezar, confirma que A y B están en redes distintas (ver el aviso del principio).
+
 | # | Acción | Resultado esperado |
 |---|---|---|
 | 10 | A con sesión (`tecnico1`) se conecta a B | Conecta por relay. Log: `Relayrequest <uuid> from … got paired`, y ninguna línea `Relay request … refused` |
@@ -107,6 +114,8 @@ Para cambiar de fase: edita `test.env`, ejecuta `run.sh` y comprueba en `docker 
 | 12 | A sin sesión se conecta a B | Error del caso 4; nunca llega al relay |
 
 ### Fase 4: `MUST_LOGIN=N`, `ALWAYS_USE_RELAY=Y` (compatibilidad por relay)
+
+También con A y B en redes distintas.
 
 | # | Acción | Resultado esperado |
 |---|---|---|
