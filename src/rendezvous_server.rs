@@ -115,7 +115,7 @@ impl RendezvousServer {
         let nat_port = port - 1;
         let ws_port = port + 2;
         let pm = PeerMap::new().await?;
-        crate::zofi::spawn_api(bind_addr, port);
+        crate::zofi::start(bind_addr, port, &key).await?;
         log::info!("serial={}", serial);
         let rendezvous_servers = get_servers(&get_arg("rendezvous-servers"), "rendezvous-servers");
         let mut socket = create_udp_listener(bind_addr, port, rmem).await?;
@@ -525,8 +525,16 @@ impl RendezvousServer {
                     if let Some(sink) = sink.take() {
                         self.tcp_punch.lock().await.insert(try_into_v4(addr), sink);
                     }
+                    if let Some(refuse_reason) = crate::zofi::access::check_request_relay(addr, &rf.token, &rf.id, &rf.uuid).await {
+                        let mut msg_out = RendezvousMessage::new();
+                        msg_out.set_relay_response(RelayResponse { refuse_reason, ..Default::default() });
+                        allow_err!(self.send_to_tcp_sync(msg_out, addr).await);
+                        return true;
+                    }
                     if let Some(peer) = self.pm.get_in_memory(&rf.id).await {
                         let mut msg_out = RendezvousMessage::new();
+                        // The controlled device must not receive the controller's login token.
+                        rf.token = Default::default();
                         rf.socket_addr = AddrMangle::encode(addr).into();
                         msg_out.set_request_relay(rf);
                         let peer_addr = peer.read().await.socket_addr;
@@ -538,6 +546,7 @@ impl RendezvousServer {
                     let addr_b = AddrMangle::decode(&rr.socket_addr);
                     rr.socket_addr = Default::default();
                     let id = rr.id();
+                    crate::zofi::access::relay_response(addr_b, id, &rr.uuid);
                     if !id.is_empty() {
                         let pk = self.get_pk(&rr.version, id.to_owned()).await;
                         rr.set_pk(pk);
@@ -716,6 +725,11 @@ impl RendezvousServer {
                 failure: punch_hole_response::Failure::LICENSE_MISMATCH.into(),
                 ..Default::default()
             });
+            return Ok((msg_out, None));
+        }
+        if let Some(other_failure) = crate::zofi::access::check_punch_hole(addr, &ph.token, &ph.id).await {
+            let mut msg_out = RendezvousMessage::new();
+            msg_out.set_punch_hole_response(PunchHoleResponse { other_failure, ..Default::default() });
             return Ok((msg_out, None));
         }
         let id = ph.id;

@@ -467,6 +467,10 @@ async fn make_pair_(stream: impl StreamTrait, addr: SocketAddr, key: &str, limit
                     log::warn!("Relay authentication failed from {} - invalid key", addr);
                     return;
                 }
+                if !crate::zofi::access::relay_allowed(&rf.uuid) {
+                    log::warn!("Relay request {} from {} refused: not authorized by a signed-in user", rf.uuid, addr);
+                    return;
+                }
                 if !rf.uuid.is_empty() {
                     let mut peer = PEERS.lock().await.remove(&rf.uuid);
                     if let Some(peer) = peer.as_mut() {

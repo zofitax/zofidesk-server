@@ -87,6 +87,7 @@ async fn login(Extension(db): Extension<Db>, body: Bytes) -> Response {
 
 async fn logout(Extension(db): Extension<Db>, auth: Auth) -> Response {
     if let Some(TypedHeader(Authorization(bearer))) = auth {
+        super::access::forget_token(bearer.token());
         if let Err(err) = db.revoke_token(bearer.token()).await {
             return internal_error(err);
         }
