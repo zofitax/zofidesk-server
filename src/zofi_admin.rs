@@ -1,7 +1,7 @@
 //! Manages ZofiDesk user accounts in the database hbbs uses (`ZOFI_DB`, default `zofidesk.sqlite3`).
 
 use hbb_common::{bail, tokio, ResultType};
-use hbbs::zofi::{db::Db, db_path};
+use hbbs::zofi::{db_path, store::Db};
 use std::io::BufRead;
 
 const USAGE: &str = "Usage:

@@ -1,14 +1,14 @@
 //! ZofiDesk additions to hbbs: user accounts and the client API.
 
 pub mod api;
-pub mod db;
+pub mod store;
 
 use crate::common::get_arg_or;
 use hbb_common::{log, tokio};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 pub fn db_path() -> String {
-    get_arg_or("ZOFI_DB", db::DEFAULT_PATH.to_owned())
+    get_arg_or("ZOFI_DB", store::DEFAULT_PATH.to_owned())
 }
 
 /// Starts the API next to hbbs, on the port below the NAT test port (21114 by default).
@@ -23,7 +23,7 @@ pub fn spawn_api(bind_addr: Option<IpAddr>, rendezvous_port: i32) {
     }
     let addr = SocketAddr::new(bind_addr.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)), port);
     tokio::spawn(async move {
-        let result = match db::Db::open(&db_path()).await {
+        let result = match store::Db::open(&db_path()).await {
             Ok(db) => api::serve(addr, db).await,
             Err(err) => Err(err),
         };

@@ -2,7 +2,7 @@
 //! book and the device heartbeat. Routes the client probes but ZofiDesk does not implement yet
 //! answer in the shape that makes the client fall back quietly.
 
-use super::db::Db;
+use super::store::Db;
 use axum::{
     body::Bytes,
     extract::Extension,
@@ -162,7 +162,7 @@ async fn empty_list() -> Response {
     json_response(json!({ "total": 0, "data": [] }))
 }
 
-async fn authenticate(db: &Db, auth: Auth) -> Result<super::db::User, Response> {
+async fn authenticate(db: &Db, auth: Auth) -> Result<super::store::User, Response> {
     let token = match auth {
         Some(TypedHeader(Authorization(bearer))) => bearer.token().to_owned(),
         None => return Err(error(StatusCode::UNAUTHORIZED, "Sesión no iniciada")),
@@ -174,7 +174,7 @@ async fn authenticate(db: &Db, auth: Auth) -> Result<super::db::User, Response> 
     }
 }
 
-fn user_json(user: &super::db::User) -> Value {
+fn user_json(user: &super::store::User) -> Value {
     json!({
         "name": user.username,
         "display_name": user.display_name,
@@ -228,7 +228,7 @@ fn internal_error(err: hbb_common::anyhow::Error) -> Response {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::zofi::db::tests::temp_db;
+    use crate::zofi::store::tests::temp_db;
 
     struct TestServer {
         base: String,
